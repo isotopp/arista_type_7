@@ -15,3 +15,19 @@ Unfortunately, this code does not run on a regular Linux machine, due to it bein
 To make provisioning easier, I reversed the function and provide an independent PoC C implementation of the encryption function.
 
 This now can be turned into a pure Python function.
+
+# Build
+
+This has been tested on Ubuntu.
+
+I had to install
+
+- libtirpc-common
+- libtirpc-dev
+- libtirpc3
+
+to get access to `<rpc/des_encrypt>` and I had to link `-static` to make it work. For a PoC that is acceptable.
+
+# Validation
+
+This has been validated only with the test data provided in the Ryan Gelobter article above.
