@@ -34,7 +34,9 @@ This has been validated only with the test data provided in the Ryan Gelobter ar
 
 # Build the Python
 
+```
 $ python3 -mvenv venv
 $ source venv/bin/activate
 (venv) $ pip install -r requirements.txt
 (venv) $ python3 pypoc.py
+```
