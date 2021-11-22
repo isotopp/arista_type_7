@@ -1,6 +1,6 @@
 # arista_type_7
 
-Generate Arista Type 7 Passwords in C
+Generate Arista Type 7 Passwords in C and Python
 
 A friend had the need to provision Arista Type 7 Passwords on switches.
 According to 
@@ -16,9 +16,9 @@ To make provisioning easier, I reversed the function and provide an independent 
 
 This now can be turned into a pure Python function.
 
-# Build
+# Build the C
 
-This has been tested on Ubuntu.
+This has been tested on Ubuntu 20.04.
 
 I had to install
 
@@ -31,3 +31,10 @@ to get access to `<rpc/des_encrypt>` and I had to link `-static` to make it work
 # Validation
 
 This has been validated only with the test data provided in the Ryan Gelobter article above.
+
+# Build the Python
+
+$ python3 -mvenv venv
+$ source venv/bin/activate
+(venv) $ pip install -r requirements.txt
+(venv) $ python3 pypoc.py
