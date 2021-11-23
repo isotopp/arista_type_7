@@ -1,14 +1,17 @@
-#! /usr/bin/env python3 
+#! /usr/bin/env python3
 
-from Crypto.Cipher import DES
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
 import base64
 
-target = b'AEeZkeT2qaavxk5/S9QDbUpTTtf7PgqU'
-target_padded_cleartext = bytearray.fromhex('4C 88 BB 4E 74 65 73 74 74 65 73 74 74 65 73 74 74 65 73 74 00 00 00 00')
-key = b'TEST_passwd'
-cleartext = b'testtesttesttest'
+try:
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from cryptography.hazmat.backends import default_backend
+    _CRYPTO_LIB = "cryptography"
+except ImportError:
+    try:
+        from Crypto.Cipher import DES
+        _CRYPTO_LIB = "pycryptodome"
+    except ImportError:
+        raise ImportError("Neither cryptography nor pycryptodome is available")
 
 SEED = b"\xd5\xa8\xc9\x1e\xf5\xd5\x8a\x23"
 
@@ -32,79 +35,55 @@ PARITY_BITS = [
 ]
 
 
-# print(base64.b64encode(bytearray.fromhex('00 47 99 91 E4 F6 A9 A6 AF C6 4E 7F 4B D4 03 6D 4A 53 4E D7 FB 3E 0A 94')))
-
-
-def phex(data):
-    print(" ".join("{:02x}".format(c) for c in data))
-
-
 def des_setparity(key):
     res = b""
     for b in key:
         pos = b & 0x7f
-        res += PARITY_BITS[pos].to_bytes(1, byteorder='big')
+        res += PARITY_BITS[pos].to_bytes(1, byteorder="big")
     return res
 
-def hashKey(pw):
+
+def hashkey(pw):
     result = bytearray(SEED)
 
     for idx, b in enumerate(pw):
         result[idx & 7] ^= b
 
-    print('Hashed key - without parity set:')
-    phex(result)
     result = des_setparity(result)
-    print('Hashed key - WITH parity set:')
-    phex(result)
 
     return bytes(result)
 
 
-def cbcEncrypt(key: bytes, data: bytes):
-    hashed_key = hashKey(key)
-    print('Cleartext data:')
-    phex(data)
+def cbc_encrypt(key: bytes, data: bytes):
+    hashed_key = hashkey(key)
     padding = (8 - ((len(data) + 4) % 8)) % 8
     ciphertext = b"\x4c\x88\xbb" + bytes([padding * 16 + 0xe]) + data + bytes(padding)
-    print('Padded ciphertext:')
-    phex(ciphertext)
-    assert ciphertext == target_padded_cleartext, 'Wrong padded cleartext'
-    cipher = DES.new(hashed_key, DES.MODE_CBC, 8 * b'\x00')
-    print('Used IV:')
-    phex(cipher.iv)
-    result = cipher.encrypt(ciphertext)
-    print('Result:')
-    phex(result)
-    return (result)
+    result = None
+    if _CRYPTO_LIB == "cryptography":
+        cipher = Cipher(algorithms.TripleDES(hashed_key), modes.CBC(bytes(8)), default_backend())
+        encryptor = cipher.encryptor()
+        result = encryptor.update(ciphertext)
+        encryptor.finalize()
+    elif _CRYPTO_LIB == "pycryptodome":
+        cipher = DES.new(hashed_key, DES.MODE_CBC, bytes(8))
+        result = cipher.encrypt(ciphertext)
+    else:
+        raise Exception("Unknown crypto library")
+    return base64.b64encode(result)
 
-def cbcEncrypt2(key: bytes, data: bytes):
-    hashed_key = hashKey(key)
-    print('Cleartext data:')
-    phex(data)
-    padding = (8 - ((len(data) + 4) % 8)) % 8
-    ciphertext = b"\x4c\x88\xbb" + bytes([padding * 16 + 0xe]) + data + bytes(padding)
-    print('Padded ciphertext:')
-    phex(ciphertext)
-    assert ciphertext == target_padded_cleartext, 'Wrong padded cleartext'
-    cipher = Cipher(algorithms.TripleDES(hashed_key), modes.CBC(8 * b'\x00'), default_backend())
-    print('Used IV:')
-    phex(cipher.mode.initialization_vector)
-    encryptor = cipher.encryptor()
-    result = encryptor.update(ciphertext)
-    encryptor.finalize()
 
-    print('Result:')
-    phex(result)
-    return (result)
-
-if __name__ == '__main__':
-    for func in [cbcEncrypt, cbcEncrypt2]:
-        print(f"--> Calling {func}")
-        result = base64.b64encode(func(key, cleartext))
-        print(result)
-        if result != target:
-            print('Not the expected output :(')
-        else:
-            print('WE DID IT!')
-
+def cbc_decrypt(key: bytes, data: bytes):
+    data = base64.b64decode(data)
+    hashed_key = hashkey(key)
+    result = None
+    if _CRYPTO_LIB == "cryptography":
+        cipher = Cipher(algorithms.TripleDES(hashed_key), modes.CBC(bytes(8)), default_backend())
+        decryptor = cipher.decryptor()
+        result = decryptor.update(data)
+        decryptor.finalize()
+    elif _CRYPTO_LIB == "pycryptodome":
+        cipher = DES.new(hashed_key, DES.MODE_CBC, bytes(8))
+        result = cipher.decrypt(data)
+    else:
+        raise Exception("Unknown crypto library")
+    return result[4:len(result)-(result[3] >> 4)]
