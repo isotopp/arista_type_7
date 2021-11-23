@@ -54,7 +54,7 @@ def hashkey(pw):
     return bytes(result)
 
 
-def cbc_encrypt(key: bytes, data: bytes):
+def cbc_encrypt(key: bytes, data: bytes, usebase64=True):
     hashed_key = hashkey(key)
     padding = (8 - ((len(data) + 4) % 8)) % 8
     ciphertext = b"\x4c\x88\xbb" + bytes([padding * 16 + 0xe]) + data + bytes(padding)
@@ -69,11 +69,15 @@ def cbc_encrypt(key: bytes, data: bytes):
         result = cipher.encrypt(ciphertext)
     else:
         raise Exception("Unknown crypto library")
-    return base64.b64encode(result)
+    if usebase64:
+        return base64.b64encode(result)
+    else
+        return result
 
 
-def cbc_decrypt(key: bytes, data: bytes):
-    data = base64.b64decode(data)
+def cbc_decrypt(key: bytes, data: bytes, usebase64=True):
+    if usebase64:
+        data = base64.b64decode(data)
     hashed_key = hashkey(key)
     result = None
     if _CRYPTO_LIB == "cryptography":
