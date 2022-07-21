@@ -47,7 +47,7 @@ def hashkey(pw):
     result = bytearray(SEED)
 
     for idx, b in enumerate(pw):
-        result[idx & 7] ^= b
+        result[idx & 7] ^= ord(b)
 
     result = des_setparity(result)
 
@@ -71,7 +71,7 @@ def cbc_encrypt(key: bytes, data: bytes, usebase64=True):
         raise Exception("Unknown crypto library")
     if usebase64:
         return base64.b64encode(result)
-    else
+    else:
         return result
 
 
