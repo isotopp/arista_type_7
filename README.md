@@ -54,3 +54,25 @@ swordfish
 $ ruby -e "require './rubypoc'; puts encrypt(key: '2001:db8:6939::1_passwd', data: 'swordfish')"
 1f2k70WMa17KyMEW72GaNg==
 ```
+
+# From Issue #2
+
+By @explodeo:
+
+You can find the call that generates the key at `/usr/lib/site-packages/python3.9/CLiPlugin`
+For ospfv3 keys, the DesCrypt encryption key suffix is "_secretKey". I looked at `RoutingOspf3Cli.py` and found the function `generateOspfEncryptionKey()`
+
+for example:
+```python
+from DesCrypt import encrypt
+encrypt(b'Ethernet1_secretKey', b'MY_OSPF_SECRET')
+```
+
+For ospfv2 message digest keys, look at `generateIntfCryotoEncrytionKey()` in `RoutingOspfCli.py`.
+Similarly, you have to use a format string:
+```python
+INTERFACE + "_" + DIGEST +"Key_" + KEY_ID
+```
+
+for eth1 with an ospf key id of 23, and using sha512 digest, an example would be:
+`Ethernet1_sha512Key_23`
